@@ -34,7 +34,7 @@ fn main() -> Result<(), std::io::Error> {
 }
 
 fn compress(file: &str) -> Result<BitVec, std::io::Error> {
-    let input = std::fs::read_to_string(&file)?;
+    let input = std::fs::read_to_string(file)?;
     let tree = generate_tree(&input);
     Ok(tree.encode_message(&input))
 }
@@ -76,7 +76,7 @@ mod tests {
 
     #[test]
     fn test_tree_big_str() {
-        let input = std::fs::read_to_string("input.txt").unwrap();
+        let input = std::fs::read_to_string("test_input.txt").unwrap();
         let tree = generate_tree(&input);
         let encrypt = tree.encode_message(&input);
         assert_eq!(tree.decode_bits(encrypt), input);
@@ -84,11 +84,11 @@ mod tests {
 
     #[test]
     fn test_tree_with_file() {
-        let input = std::fs::read_to_string("input.txt").unwrap();
+        let input = std::fs::read_to_string("test_input.txt").unwrap();
         let tree = generate_tree(&input);
         let encrypt = tree.encode_message(&input);
-        write_bits_to_file("output.txt", &encrypt).unwrap();
-        let file = read_bits_from_file("output.txt").unwrap();
+        write_bits_to_file("test_output.txt", &encrypt).unwrap();
+        let file = read_bits_from_file("test_output.txt").unwrap();
         assert_eq!(encrypt, file);
         let decrypt = tree.decode_bits(file);
         assert_eq!(input, decrypt);

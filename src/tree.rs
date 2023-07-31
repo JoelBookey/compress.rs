@@ -20,10 +20,10 @@ pub fn pretty_print(node: &HuffmanTree, i: u16) {
 fn get_queue(input: &str) -> BinaryHeap<HuffmanTree> {
     let mut weights: HashMap<char, u16> = HashMap::new();
     for c in input.chars() {
-        if weights.contains_key(&c) {
-            *weights.get_mut(&c).unwrap() += 1;
+        if let std::collections::hash_map::Entry::Vacant(e) = weights.entry(c) {
+            e.insert(1);
         } else {
-            weights.insert(c, 1);
+            *weights.get_mut(&c).unwrap() += 1;
         }
     }
 
@@ -130,7 +130,7 @@ impl HuffmanTree {
     pub fn decode_bits(&self, mut input: BitVec) -> String {
         let r = {
             let bytes = input.to_bytes();
-            *bytes.get(0).unwrap()
+            *bytes.first().unwrap()
         };
 
         for _ in 0..r as usize {
