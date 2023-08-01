@@ -3,9 +3,6 @@ use bit_vec::BitVec;
 use std::collections::BinaryHeap;
 use std::collections::HashMap;
 
-pub fn generate_tree(input: &str) -> HuffmanTree {
-    make_tree(get_queue(input))
-}
 
 pub fn pretty_print(node: &HuffmanTree, i: u16) {
     if let &HuffmanTree::Leaf(c, w) = node {
@@ -17,22 +14,6 @@ pub fn pretty_print(node: &HuffmanTree, i: u16) {
     }
 }
 
-fn get_queue(input: &str) -> BinaryHeap<HuffmanTree> {
-    let mut weights: HashMap<char, u16> = HashMap::new();
-    for c in input.chars() {
-        if let std::collections::hash_map::Entry::Vacant(e) = weights.entry(c) {
-            e.insert(1);
-        } else {
-            *weights.get_mut(&c).unwrap() += 1;
-        }
-    }
-
-    let mut q = BinaryHeap::new();
-    weights
-        .iter()
-        .for_each(|(key, val)| q.push(HuffmanTree::Leaf(*key, *val)));
-    q
-}
 
 const LEFT: bool = false;
 const RIGHT: bool = true;
@@ -66,6 +47,50 @@ impl PartialOrd for HuffmanTree {
 }
 
 impl HuffmanTree {
+    
+    pub fn from_str(input: &str) -> Self {
+        let mut weights: HashMap<char, u16> = HashMap::new();
+        for c in input.chars() {
+            if let std::collections::hash_map::Entry::Vacant(e) = weights.entry(c) {
+                e.insert(1);
+            } else {
+                *weights.get_mut(&c).unwrap() += 1;
+            }
+        }
+
+        let mut queue = BinaryHeap::new();
+        weights
+            .iter()
+            .for_each(|(key, val)| queue.push(HuffmanTree::Leaf(*key, *val)));
+
+
+        while queue.len() > 2 {
+            let left = queue.pop().unwrap();
+            let right = queue.pop().unwrap();
+            let l_weight = left.weight();
+            let r_weight = right.weight();
+            if l_weight < r_weight {
+                queue.push(HuffmanTree::Node(
+                    l_weight + r_weight,
+                    Box::new(left),
+                    Box::new(right),
+                ))
+            } else {
+                queue.push(HuffmanTree::Node(
+                    l_weight + r_weight,
+                    Box::new(right),
+                    Box::new(left),
+                ))
+            }
+        }
+
+        let left = queue.pop().unwrap();
+        let right = queue.pop().unwrap();
+        let weight = left.weight() + right.weight();
+        HuffmanTree::Node(weight, Box::new(left), Box::new(right))
+
+    }
+
     fn weight(&self) -> u16 {
         match self {
             HuffmanTree::Node(_w, l, r) => l.weight() + r.weight(),
@@ -157,29 +182,3 @@ impl HuffmanTree {
     }
 }
 
-fn make_tree(mut heap: BinaryHeap<HuffmanTree>) -> HuffmanTree {
-    while heap.len() > 2 {
-        let left = heap.pop().unwrap();
-        let right = heap.pop().unwrap();
-        let l_weight = left.weight();
-        let r_weight = right.weight();
-        if l_weight < r_weight {
-            heap.push(HuffmanTree::Node(
-                l_weight + r_weight,
-                Box::new(left),
-                Box::new(right),
-            ))
-        } else {
-            heap.push(HuffmanTree::Node(
-                l_weight + r_weight,
-                Box::new(right),
-                Box::new(left),
-            ))
-        }
-    }
-
-    let left = heap.pop().unwrap();
-    let right = heap.pop().unwrap();
-    let weight = left.weight() + right.weight();
-    HuffmanTree::Node(weight, Box::new(left), Box::new(right))
-}

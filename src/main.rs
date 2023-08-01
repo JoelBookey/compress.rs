@@ -1,6 +1,6 @@
 use bit_vec::BitVec;
 use clap::{clap_derive::*, Parser};
-use huffman::tree::generate_tree;
+use huffman::tree::HuffmanTree;
 use std::io::Write;
 
 #[derive(Parser)]
@@ -35,7 +35,7 @@ fn main() -> Result<(), std::io::Error> {
 
 fn compress(file: &str) -> Result<BitVec, std::io::Error> {
     let input = std::fs::read_to_string(file)?;
-    let tree = generate_tree(&input);
+    let tree = HuffmanTree::from_str(&input);
     Ok(tree.encode_message(&input))
 }
 
@@ -61,7 +61,7 @@ mod tests {
     const MESSAGE: &str = "hello my name is gunther welcome to the valley!";
     #[test]
     fn test_tree_char() {
-        let tree = generate_tree(&MESSAGE.to_string());
+        let tree = HuffmanTree::from_str(&MESSAGE.to_string());
         let encrypt = &tree.get_lookup_table();
         let ec = encrypt.get(&'l').unwrap();
         assert_eq!(tree.get_char(ec.clone()).unwrap(), 'l');
@@ -69,7 +69,7 @@ mod tests {
 
     #[test]
     fn test_tree_str() {
-        let tree = generate_tree(MESSAGE);
+        let tree = HuffmanTree::from_str(MESSAGE);
         let encrypt = tree.encode_message(MESSAGE);
         assert_eq!(tree.decode_bits(encrypt), MESSAGE);
     }
@@ -77,7 +77,7 @@ mod tests {
     #[test]
     fn test_tree_big_str() {
         let input = std::fs::read_to_string("test_input.txt").unwrap();
-        let tree = generate_tree(&input);
+        let tree = HuffmanTree::from_str(&input);
         let encrypt = tree.encode_message(&input);
         assert_eq!(tree.decode_bits(encrypt), input);
     }
@@ -85,7 +85,7 @@ mod tests {
     #[test]
     fn test_tree_with_file() {
         let input = std::fs::read_to_string("test_input.txt").unwrap();
-        let tree = generate_tree(&input);
+        let tree = HuffmanTree::from_str(&input);
         let encrypt = tree.encode_message(&input);
         write_bits_to_file("test_output.txt", &encrypt).unwrap();
         let file = read_bits_from_file("test_output.txt").unwrap();
