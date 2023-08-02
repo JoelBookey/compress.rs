@@ -21,7 +21,7 @@ const RIGHT: bool = true;
 #[derive(Debug, PartialEq, Eq)]
 pub enum HuffmanTree {
     Node(u16, Box<HuffmanTree>, Box<HuffmanTree>),
-    Leaf(char, u16),
+    Leaf(u8, u16),
 }
 
 use std::cmp;
@@ -49,12 +49,12 @@ impl PartialOrd for HuffmanTree {
 impl HuffmanTree {
     
     pub fn from_str(input: &str) -> Self {
-        let mut weights: HashMap<char, u16> = HashMap::new();
+        let mut weights: HashMap<u8, u16> = HashMap::new();
         for c in input.chars() {
-            if let std::collections::hash_map::Entry::Vacant(e) = weights.entry(c) {
+            if let std::collections::hash_map::Entry::Vacant(e) = weights.entry(c as u8) {
                 e.insert(1);
             } else {
-                *weights.get_mut(&c).unwrap() += 1;
+                *weights.get_mut(&(c as u8)).unwrap() += 1;
             }
         }
 
@@ -91,6 +91,10 @@ impl HuffmanTree {
 
     }
 
+    pub fn from_bitvec(v: BitVec) -> Self {
+        HuffmanTree::Leaf(b'9', 10)
+    }
+
     fn weight(&self) -> u16 {
         match self {
             HuffmanTree::Node(_w, l, r) => l.weight() + r.weight(),
@@ -98,16 +102,16 @@ impl HuffmanTree {
         }
     }
 
-    pub fn get_lookup_table(&self) -> HashMap<char, BitVec> {
+    pub fn get_lookup_table(&self) -> HashMap<u8, BitVec> {
         let mut out = HashMap::new();
         let _ = self.get_lookup_table_inner(&mut out, &BitVec::new());
         out
     }
     fn get_lookup_table_inner(
         &self,
-        table: &mut HashMap<char, BitVec>,
+        table: &mut HashMap<u8, BitVec>,
         prev: &BitVec,
-    ) -> Option<char> {
+    ) -> Option<u8> {
         if let HuffmanTree::Leaf(c, _w) = self {
             return Some(*c);
         } else if let HuffmanTree::Node(_weight, left, right) = self {
@@ -128,7 +132,7 @@ impl HuffmanTree {
         let table = self.get_lookup_table();
         let mut output = BitVec::new();
         for c in input.chars() {
-            output.append(&mut table.get(&c).expect("char not in table").clone());
+            output.append(&mut table.get(&(c as u8)).expect("u8 not in table").clone());
         }
         let r = 8 - (output.len() % 8);
         let mut output2 = BitVec::from_bytes(&[r as u8]);
@@ -137,16 +141,16 @@ impl HuffmanTree {
         output2
     }
 
-    pub fn get_char(&self, route: BitVec) -> Option<char> {
-        self.get_char_inner(route.iter().rev().collect())
+    pub fn get_u8(&self, route: BitVec) -> Option<u8> {
+        self.get_u8_inner(route.iter().rev().collect())
     }
 
-    fn get_char_inner(&self, mut route: BitVec) -> Option<char> {
+    fn get_u8_inner(&self, mut route: BitVec) -> Option<u8> {
         match self {
             HuffmanTree::Leaf(c, _w) => Some(*c),
             HuffmanTree::Node(_w, l, r) => match route.pop() {
-                Some(LEFT) => l.get_char_inner(route),
-                Some(RIGHT) => r.get_char_inner(route),
+                Some(LEFT) => l.get_u8_inner(route),
+                Some(RIGHT) => r.get_u8_inner(route),
                 None => None,
             },
         }
@@ -171,13 +175,13 @@ impl HuffmanTree {
 
         loop {
             let mut current_c = BitVec::new();
-            while self.get_char(current_c.clone()).is_none() {
+            while self.get_u8(current_c.clone()).is_none() {
                 if input.is_empty() {
                     return output;
                 }
                 current_c.push(input.pop().unwrap());
             }
-            output.push(self.get_char(current_c.clone()).unwrap());
+            output.push(self.get_u8(current_c.clone()).unwrap() as char);
         }
     }
 }

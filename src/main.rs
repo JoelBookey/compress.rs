@@ -63,8 +63,8 @@ mod tests {
     fn test_tree_char() {
         let tree = HuffmanTree::from_str(&MESSAGE.to_string());
         let encrypt = &tree.get_lookup_table();
-        let ec = encrypt.get(&'l').unwrap();
-        assert_eq!(tree.get_char(ec.clone()).unwrap(), 'l');
+        let ec = encrypt.get(&b'l').unwrap();
+        assert_eq!(tree.get_u8(ec.clone()).unwrap() as char, 'l');
     }
 
     #[test]
