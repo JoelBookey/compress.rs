@@ -1,4 +1,3 @@
-#![warn(dead_code)]
 use bit_vec::BitVec;
 use std::collections::BinaryHeap;
 use std::collections::HashMap;
@@ -91,8 +90,14 @@ impl HuffmanTree {
 
     }
 
-    pub fn from_bitvec(v: BitVec) -> Self {
-        HuffmanTree::Leaf(b'9', 10)
+    pub fn deconstructed(&self) -> BitVec {
+        let mut map = self.get_lookup_table();
+        let mut vec = BitVec::from_bytes(&[map.len() as u8]);
+        for (k, v) in map.iter_mut() {
+            vec.append(v);
+            vec.append(&mut BitVec::from_bytes(&[*k]));
+        }
+        vec.iter().rev().collect()
     }
 
     fn weight(&self) -> u16 {
@@ -184,5 +189,15 @@ impl HuffmanTree {
             output.push(self.get_u8(current_c.clone()).unwrap() as char);
         }
     }
+}
+
+fn pop_byte(v: &mut BitVec) -> Option<u8> {
+    v.to_bytes().last().map(|val| {
+            for _ in 0..8 {
+                let _ = v.pop();
+            }
+            *val
+        }
+    )
 }
 

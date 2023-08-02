@@ -94,11 +94,22 @@ impl HuffmanTree {
     }
 
     pub fn deconstructed(&self) -> BitVec {
-        let map = self.get_lookup_table();
         let mut vec = BitVec::new();
-        
-        for (k, v) in map.iter() {
-            
+        self.deconstruct(&mut vec);
+        vec
+    }
+
+    fn deconstruct(&self, v: &mut Vec) {
+        match self {
+            HuffmanTree::Node(_w, l, r) => {
+                v.push(false);
+                l.deconstruct(v);
+                r.deconstruct(v);
+            }
+            HuffmanTree::Leaf(_c, _w) => {
+                v.push(true);
+                v.append(BitVec::from_bytes(&[c]));
+            }
         }
     }
 
@@ -126,7 +137,7 @@ impl HuffmanTree {
             left_branch.push(LEFT);
             if let Some(c) = left.get_lookup_table_inner(table, &left_branch) {
                 table.insert(c, left_branch);
-            }
+            
             let mut right_branch = prev.clone();
             right_branch.push(RIGHT);
             if let Some(c) = right.get_lookup_table_inner(table, &right_branch) {
