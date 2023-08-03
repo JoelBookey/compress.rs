@@ -19,8 +19,8 @@ const RIGHT: bool = true;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum HuffmanTree {
-    Node(u16, Box<HuffmanTree>, Box<HuffmanTree>),
-    Leaf(char, u16),
+    Node(Option<u16>, Box<HuffmanTree>, Box<HuffmanTree>),
+    Leaf(char, Option<u16>),
 }
 
 use std::cmp;
@@ -69,13 +69,13 @@ impl HuffmanTree {
             let r_weight = right.weight();
             if l_weight < r_weight {
                 queue.push(HuffmanTree::Node(
-                    l_weight + r_weight,
+                    Some(l_weight + r_weight),
                     Box::new(left),
                     Box::new(right),
                 ))
             } else {
                 queue.push(HuffmanTree::Node(
-                    l_weight + r_weight,
+                    Some(l_weight + r_weight),
                     Box::new(right),
                     Box::new(left),
                 ))
@@ -85,18 +85,23 @@ impl HuffmanTree {
         let left = queue.pop().unwrap();
         let right = queue.pop().unwrap();
         let weight = left.weight() + right.weight();
-        HuffmanTree::Node(weight, Box::new(left), Box::new(right))
+        HuffmanTree::Node(Some(weight), Box::new(left), Box::new(right))
 
     }
 
-    pub fn from_bitvec_inner(v: &mut BitVec) {
-        
+    pub fn reconstruct(v: &mut BitVec) -> Self {
+        //let len = pop_byte(&mut BitVec).unwrap();
+        match v.pop().unwrap() {
+            true => Self::Leaf(pop_byte(v).unwrap() as char, None),
+            false => Self::Node(None, Box::new(Self::reconstruct(v)), Box::new(Self::reconstruct(v)))
+        }
     }
 
     pub fn deconstructed(&self) -> BitVec {
         let mut vec = BitVec::new();
+        //vec.push(self.get_lookup_table().len() as u8);
         self.deconstruct(&mut vec);
-        vec
+        vec.iter().rev().collect()
     }
 
     fn deconstruct(&self, v: &mut Vec) {
@@ -116,7 +121,7 @@ impl HuffmanTree {
     fn weight(&self) -> u16 {
         match self {
             HuffmanTree::Node(_w, l, r) => l.weight() + r.weight(),
-            HuffmanTree::Leaf(_, w) => *w,
+            HuffmanTree::Leaf(_, w) => *(w.expect("no weight set")),
         }
     }
 
@@ -203,7 +208,10 @@ impl HuffmanTree {
             output.push(self.get_char(current_c.clone()).unwrap());
         }
     }
+    }
 }
+
+    
 
 
 fn pop_byte(v: &mut BitVec) -> Option<u8> {
@@ -211,15 +219,20 @@ fn pop_byte(v: &mut BitVec) -> Option<u8> {
         for i in 0..8 {
             let _ = v.pop();
         }
-        *val})
+        *val
+    })
 }
+
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     #[test]
     fn test_pop_byte() {
-        let vec = BitVec::new(0b10011001, 0b11111111);
+        let vec = BitVec::from_bytes(&[0b10011001, 0b11111111]);
         assert_eq!(pop_byte(&mut vec), 255);
-        
     }
+    
+    #[test]
+    fn hello() {}
 }

@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use bit_vec::BitVec;
 use clap::{clap_derive::*, Parser};
 use huffman::tree::HuffmanTree;
@@ -37,7 +36,6 @@ fn main() -> Result<(), std::io::Error> {
 fn compress(file: &str) -> Result<BitVec, std::io::Error> {
     let input = std::fs::read_to_string(file)?;
     let tree = HuffmanTree::from_str(&input);
-    print_bits(&tree.deconstructed())?;
     Ok(tree.encode_message(&input))
 }
 
