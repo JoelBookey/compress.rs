@@ -3,9 +3,9 @@ use std::collections::BinaryHeap;
 use std::collections::HashMap;
 
 
-pub fn pretty_print(node: &HuffmanTree, i: u16) {
+pub fn pretty_print(node: &HuffmanTree, i: usize) {
     if let &HuffmanTree::Leaf(c, w) = node {
-        println!("{:^1$}{c}: {w}", ' ', i as usize);
+        println!("{:^1$}{c}: {w}", ' ', i as usize, c = c as char);
     } else if let HuffmanTree::Node(w, l, r) = node {
         println!("{:^1$}{w}", ' ', i as usize);
         pretty_print(l, i + 1);
@@ -19,8 +19,8 @@ const RIGHT: bool = true;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum HuffmanTree {
-    Node(u16, Box<HuffmanTree>, Box<HuffmanTree>),
-    Leaf(u8, u16),
+    Node(u64, Box<HuffmanTree>, Box<HuffmanTree>),
+    Leaf(u8, u64),
 }
 
 use std::cmp;
@@ -48,7 +48,7 @@ impl PartialOrd for HuffmanTree {
 impl HuffmanTree {
     
     pub fn from_str(input: &str) -> Self {
-        let mut weights: HashMap<u8, u16> = HashMap::new();
+        let mut weights: HashMap<u8, u64> = HashMap::new();
         for c in input.chars() {
             if let std::collections::hash_map::Entry::Vacant(e) = weights.entry(c as u8) {
                 e.insert(1);
@@ -90,17 +90,34 @@ impl HuffmanTree {
 
     }
 
-    pub fn deconstructed(&self) -> BitVec {
-        let mut map = self.get_lookup_table();
-        let mut vec = BitVec::from_bytes(&[map.len() as u8]);
-        for (k, v) in map.iter_mut() {
-            vec.append(v);
-            vec.append(&mut BitVec::from_bytes(&[*k]));
+    pub fn reconstruct(v: &mut BitVec) -> Self {
+        match v.pop().expect("reconstruct input was empty") {
+            true => Self::Leaf(pop_byte(v).unwrap(), 0),
+            false => Self::Node(0, Box::new(HuffmanTree::reconstruct(v)), Box::new(HuffmanTree::reconstruct(v)))
         }
+    }
+
+    pub fn deconstructed(&self) -> BitVec {
+        let mut vec = BitVec::new();
+        self.deconstructed_inner(&mut vec);
         vec.iter().rev().collect()
     }
 
-    fn weight(&self) -> u16 {
+    fn deconstructed_inner(&self, output: &mut BitVec) {
+        match self {
+            HuffmanTree::Leaf(c, _w) => {
+                output.push(true);
+                push_byte(output, *c as u8);
+            }
+            HuffmanTree::Node(_, l, r) => {
+                output.push(false);
+                l.deconstructed_inner(output);
+                r.deconstructed_inner(output);
+            }
+        };
+    }
+
+    fn weight(&self) -> u64 {
         match self {
             HuffmanTree::Node(_w, l, r) => l.weight() + r.weight(),
             HuffmanTree::Leaf(_, w) => *w,
@@ -191,13 +208,59 @@ impl HuffmanTree {
     }
 }
 
-fn pop_byte(v: &mut BitVec) -> Option<u8> {
-    v.to_bytes().last().map(|val| {
-            for _ in 0..8 {
-                let _ = v.pop();
-            }
-            *val
-        }
-    )
+pub fn pop_byte(v: &mut BitVec) -> Option<u8> {
+    let mut vec = BitVec::new();
+    for _ in 0..8 {
+        vec.push(v.pop().unwrap())
+    }
+    vec.to_bytes().iter().rev().last().map(|val| *val)
 }
 
+pub fn push_byte(v: &mut BitVec, byte: u8) {
+    v.append(&mut BitVec::from_bytes(&[byte]));
+}
+
+pub fn rev_byte(byte: u8) -> u8 {
+    *(BitVec::from_bytes(&[byte]).iter().rev().collect::<BitVec<u32>>().to_bytes().get(0).unwrap())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn test_pop_bytes() {
+        let mut v= BitVec::from_bytes(&[0b11111111]);
+        assert_eq!(pop_byte(&mut v).unwrap(), 255_u8);
+    }
+    
+    #[test]
+    fn test_rev_byte(){
+        assert_eq!(rev_byte(0b11110000), 0b00001111);
+    }
+
+
+    #[test]
+    fn test_construction() {
+        let tree = HuffmanTree::from_str("i love chicken");
+        let mut deconstructed = tree.deconstructed();
+        let reconstructed = HuffmanTree::reconstruct(&mut deconstructed);
+        pretty_print(&tree, 2);
+        pretty_print(&reconstructed, 2);
+        assert_eq!(tree.encode_message("i love chicken"), reconstructed.encode_message("i love chicken"));
+    }
+
+    #[test]
+    fn test_rev_bitvec() {
+        let mut vec = BitVec::new();
+        vec.push(true);
+        vec.push(false);
+        vec.push(false);
+        let reverse: BitVec = vec.iter().rev().collect();
+        let mut true_reverse = BitVec::new();
+        true_reverse.push(false);
+        true_reverse.push(false);
+        true_reverse.push(true);
+        assert_eq!(true_reverse, reverse)
+    }
+
+}

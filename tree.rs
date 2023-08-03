@@ -5,7 +5,7 @@ use std::collections::HashMap;
 
 pub fn pretty_print(node: &HuffmanTree, i: u16) {
     if let &HuffmanTree::Leaf(c, w) = node {
-        println!("{:^1$}{c}: {w}", ' ', i as usize);
+        println!("{:^1$}{c}: {w}", ' ', i as usize, c = c as char);
     } else if let HuffmanTree::Node(w, l, r) = node {
         println!("{:^1$}{w}", ' ', i as usize);
         pretty_print(l, i + 1);
@@ -113,7 +113,7 @@ impl HuffmanTree {
             }
             HuffmanTree::Leaf(_c, _w) => {
                 v.push(true);
-                v.append(BitVec::from_bytes(&[c]));
+                v.append(BitVec::from_bytes(&[rev_byte(c)]));
             }
         }
     }
@@ -223,6 +223,10 @@ fn pop_byte(v: &mut BitVec) -> Option<u8> {
     })
 }
 
+fn rev_byte(byte: u8) -> u8 {
+    BitVec::from_bytes(&[byte]).iter().rev().collect::<BitVec<u32>>().to_bytes().get(0).unwrap()
+}
+
 
 #[cfg(test)]
 mod tests {
@@ -234,5 +238,7 @@ mod tests {
     }
     
     #[test]
-    fn hello() {}
+    fn test_rev_byte() {
+        assert_eq!(rev_byte(b11110000), b00001111);
+    }
 }

@@ -1,6 +1,6 @@
 use bit_vec::BitVec;
 use clap::{clap_derive::*, Parser};
-use huffman::tree::HuffmanTree;
+use huffman::tree::{HuffmanTree, pretty_print, push_byte, pop_byte, rev_byte};
 use std::io::Write;
 
 #[derive(Parser)]
@@ -27,7 +27,14 @@ fn main() -> Result<(), std::io::Error> {
                 print_bits(&output)?;
             }
         }
-        Cli::Decompress(_) => unimplemented!(),
+        Cli::Decompress(args) => {
+            let output = decompress(&args.name)?;
+            if let Some(out) = args.output {
+                std::fs::write(&out, &output)?;
+            } else {
+                print!("{output}");
+            }
+        }
     }
 
     Ok(())
@@ -36,7 +43,30 @@ fn main() -> Result<(), std::io::Error> {
 fn compress(file: &str) -> Result<BitVec, std::io::Error> {
     let input = std::fs::read_to_string(file)?;
     let tree = HuffmanTree::from_str(&input);
-    Ok(tree.encode_message(&input))
+    
+    let mut s_tree = tree.deconstructed();
+    let r = 8-(s_tree.len() % 8);
+    let mut message = tree.encode_message(&input);
+    message.append(&mut s_tree);
+    for _ in 0..r {
+        message.push(false);
+    }
+    eprintln!("{r}");
+    push_byte(&mut message, r as u8);
+    Ok(message)
+}
+
+fn decompress(file: &str) -> Result<String, std::io::Error> {
+    let mut input = read_bits_from_file(file)?;
+    let r = rev_byte(pop_byte(&mut input).expect("invalid file")) as usize;
+    eprintln!("{r}");
+    for _ in 0..r {
+        let _ = input.pop().expect("invalid file");
+    }
+
+    let tree = HuffmanTree::reconstruct(&mut input);
+    Ok(tree.decode_bits(input))
+
 }
 
 fn write_bits_to_file(f_name: &str, v: &BitVec) -> Result<(), std::io::Error> {
